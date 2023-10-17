@@ -4,14 +4,31 @@ const { Product, Category, Tag, ProductTag } = require('../../models');
 // The `/api/products` endpoint
 
 // get all products
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   // find all products
+  try {
+    const products = await Product.findAll({
+      include: [{ model: Category }, { model: Tag }],
+    });
+  } catch (error) {
+    res.status(500).json[{ message: 'Product not found!'}]
+  }
   // be sure to include its associated Category and Tag data
 });
 
 // get one product
-router.get('/:id', (req, res) => {
+router.get('/:id',async (req, res) => {
   // find a single product by its `id`
+ try {
+  const product = await Product.findbyPk(req.params.id,{
+    include: [{ model: Category} ,{ model: Tag }],
+  });
+  !product
+  ? res.status(404).json({ message: "Product not found!"})
+  : res.status(200).json(product);
+ } catch (error) {
+  res.status(500).json({ message: "Product not found!" })
+ }
   // be sure to include its associated Category and Tag data
 });
 
@@ -48,8 +65,42 @@ router.post('/', (req, res) => {
 });
 
 // update product
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   // update product data
+  try {
+    await Product.update(req.body, {where: { id: req.params.id} });
+     // Check if req.body.tags exists w appropriate length
+    if ( req.body.tags && req.body.length > 0) {}
+    //retrieve product tags and ids.
+    const productTags = await ProductTag.findAll({ where: { product_id: req.params.id} });
+    const productTagIds = productTags.map(({ tag_id }) => tag_id);
+    
+    //filter new products
+    const newProductTags = req.body.tags
+    .filter((tag_id) => !productTagIds.includes(tag_id))
+    .map((tag_id) => {
+      return {
+        product_id: req.params.id,
+        tag_id,
+      };
+    });
+
+    //filter product tags to remove
+    const productTagsToRemove = productTags
+    .filter(({ tag_id }) => !req.body.tags.includes(tag_id))
+    .map(({ id }) => id);
+
+    await Promise.all([
+      ProductTag.destroy({ where: { id: productTagsToRemove } }),
+      ProductTag.bulkCreate(newProductTags),
+    ]);
+
+    //Respond with updated prod.
+    const product
+
+  } catch (error) {
+    
+  }
   Product.update(req.body, {
     where: {
       id: req.params.id,
