@@ -23,9 +23,10 @@ ProductTag.init(
       type: DataTypes.INTEGER,
       references: {
         model: 'product', //Reference the 'product' table
+        key: 'id', // just referencing the 'id' columns in the 'products' table
       }
-    }
-  },
+    },
+ },
   {
     sequelize,
     timestamps: false,
